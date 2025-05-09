@@ -35,7 +35,7 @@ const registrationSchema = z
 export default function RegisterPage() {
   const router = useRouter();
   // Use isLoading from context, and also isAuthenticated and user for redirection
-  const { signupUser, isLoading, isAuthenticated, user } = useAuth(); 
+  const { signupUser, isLoading, isAuthenticated, user } = useAuth();
 
   // Registration Form
   const registrationForm = useForm<z.infer<typeof registrationSchema>>({
@@ -49,8 +49,8 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (isAuthenticated && user) {
-      // Redirect if already logged in 
-      router.push('/menu'); 
+      // Redirect if already logged in
+      router.push('/menu');
     }
   }, [isAuthenticated, user, router]);
 
@@ -72,10 +72,11 @@ export default function RegisterPage() {
       // data.user contains user data, data.session is null if email confirmation is pending
       if (data.user && !data.session) {
         toast.info('Registration Successful', {
-          description: 'Please check your email to verify your account before logging in.',
+          description:
+            'Please check your email to verify your account before logging in.',
         });
         // Optionally redirect to a page saying "check your email" or back to login
-        router.push('/login'); 
+        router.push('/login');
       } else if (data.user && data.session) {
         // This case implies user is auto-confirmed and logged in by Supabase
         toast.success('Registration Successful', {
@@ -85,23 +86,25 @@ export default function RegisterPage() {
       } else {
         // Fallback, though Supabase usually provides user or error
         toast.info('Registration Submitted', {
-            description: 'Please follow any instructions sent to your email.'
+          description: 'Please follow any instructions sent to your email.',
         });
         router.push('/login');
       }
-
-    } catch (error: any) {
+    } catch (error) {
       // This catch might be redundant if Supabase errors are handled above
       console.error('Unexpected error during registration:', error);
-      toast.error('Registration Failed', {
-        description: error.message || 'An unexpected error occurred.',
-      });
+      if (error instanceof Error) {
+        toast.error('Registration Failed', {
+          description: error.message || 'Please try again',
+        });
+      }
     }
     // isLoading state is managed by AuthContext
   };
 
   // Prevent rendering form if already authenticated and redirecting
-  if (isLoading && !registrationForm.formState.isSubmitting) return <p>Loading...</p>;
+  if (isLoading && !registrationForm.formState.isSubmitting)
+    return <p>Loading...</p>;
   if (isAuthenticated && user) return <p>Redirecting...</p>;
 
   return (
@@ -127,7 +130,9 @@ export default function RegisterPage() {
                       placeholder='your@email.com'
                       type='email'
                       {...field}
-                      disabled={isLoading || registrationForm.formState.isSubmitting}
+                      disabled={
+                        isLoading || registrationForm.formState.isSubmitting
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -145,7 +150,9 @@ export default function RegisterPage() {
                       type='password'
                       placeholder='Password (min. 6 characters)'
                       {...field}
-                      disabled={isLoading || registrationForm.formState.isSubmitting}
+                      disabled={
+                        isLoading || registrationForm.formState.isSubmitting
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -163,7 +170,9 @@ export default function RegisterPage() {
                       type='password'
                       placeholder='Confirm Password'
                       {...field}
-                      disabled={isLoading || registrationForm.formState.isSubmitting}
+                      disabled={
+                        isLoading || registrationForm.formState.isSubmitting
+                      }
                     />
                   </FormControl>
                   <FormMessage />
@@ -171,8 +180,14 @@ export default function RegisterPage() {
               )}
             />
 
-            <Button type='submit' className='w-full' disabled={isLoading || registrationForm.formState.isSubmitting}>
-              {isLoading || registrationForm.formState.isSubmitting ? 'Processing...' : 'Register'}
+            <Button
+              type='submit'
+              className='w-full'
+              disabled={isLoading || registrationForm.formState.isSubmitting}
+            >
+              {isLoading || registrationForm.formState.isSubmitting
+                ? 'Processing...'
+                : 'Register'}
             </Button>
             <div className='text-center mt-4'>
               <Link

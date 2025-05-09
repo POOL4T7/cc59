@@ -16,6 +16,9 @@ import {
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import Image from 'next/image';
+import PostList from '@/components/PostList';
+import { useAuth } from '@/context/AuthContext';
 
 // Animation variants
 const container = {
@@ -75,6 +78,7 @@ const AnimatedFeatureCard = ({
 export default function Page() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user, logoutUser } = useAuth();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -86,7 +90,6 @@ export default function Page() {
 
   return (
     <div className='flex min-h-screen flex-col'>
-      {/* Header with scroll effect */}
       <header
         className={`sticky top-0 z-50 border-b bg-background transition-all duration-300 ${
           scrolled ? 'py-2 shadow-sm' : 'py-0'
@@ -131,12 +134,30 @@ export default function Page() {
               transition={{ delay: 0.4, duration: 0.5 }}
               className='hidden md:block'
             >
-              <Link
-                href='/login'
-                className='text-sm font-medium hover:text-blue-600 transition-colors'
-              >
-                Log in
-              </Link>
+              {user ? (
+                <div className='flex items-center gap-2'>
+                  <Link
+                    href='/dashboard'
+                    className='text-sm font-medium hover:text-blue-600 transition-colors relative group'
+                  >
+                    Dashboard
+                  </Link>
+                  <Button
+                    className='text-sm font-medium hover:text-blue-600 transition-colors relative group'
+                    onClick={logoutUser}
+                  >
+                    Logout
+                  </Button>
+                </div>
+              ) : (
+                <Link
+                  href='/login'
+                  className='text-sm font-medium hover:text-blue-600 transition-colors relative group'
+                >
+                  Login
+                  <span className='absolute bottom-0 left-0 w-0 h-0.5 bg-blue-600 transition-all duration-300 group-hover:w-full'></span>
+                </Link>
+              )}
             </motion.div>
 
             <Button
@@ -252,12 +273,13 @@ export default function Page() {
                   <div className='h-3 w-3 rounded-full bg-green-500'></div>
                 </div>
               </div>
-              <img
-                src='/placeholder.svg?height=600&width=1200'
+              <Image
+                src='/placeholder.svg'
                 alt='EmpowerHR Dashboard Preview'
                 className='w-full rounded-b-xl'
                 width={1200}
                 height={600}
+                priority
               />
             </motion.div>
           </div>
@@ -336,6 +358,31 @@ export default function Page() {
                 <AnimatedFeatureCard key={index} {...feature} />
               ))}
             </motion.div>
+          </div>
+        </section>
+
+        {/* Latest Posts Section */}
+        <section id='latest-posts' className='py-16 md:py-20 bg-slate-50'>
+          <div className='container mx-auto px-4 sm:px-6'>
+            <motion.div
+              initial='hidden'
+              whileInView='show'
+              variants={fadeIn}
+              viewport={{ once: true }}
+              className='text-center mx-auto max-w-3xl mb-12'
+            >
+              <h2 className='text-2xl font-bold tracking-tighter sm:text-3xl md:text-4xl'>
+                Latest from Our{' '}
+                <span className='bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'>
+                  Blog
+                </span>
+              </h2>
+              <p className='mt-3 text-base text-muted-foreground sm:text-lg'>
+                Stay updated with the latest news, articles, and insights from
+                our team.
+              </p>
+            </motion.div>
+            <PostList />
           </div>
         </section>
 

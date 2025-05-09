@@ -72,9 +72,8 @@ const PostList = () => {
   }
 
   return (
-    <section id='latest-posts' className='py-12 md:py-20 bg-slate-50'>
-      <div className='container mx-auto px-4 sm:px-6'>
-        <motion.div
+    <section id='latest-posts' className='py-12 bg-slate-50'>
+      {/* <motion.div
           initial='hidden'
           whileInView='show'
           viewport={{ once: true, amount: 0.2 }}
@@ -87,55 +86,56 @@ const PostList = () => {
           <p className='mt-4 text-lg text-muted-foreground sm:text-xl'>
             See what others are sharing and get inspired.
           </p>
-        </motion.div>
+        </motion.div> */}
 
-        <motion.div
-          variants={container}
-          initial='hidden'
-          whileInView='show'
-          viewport={{ once: true, amount: 0.1 }}
-          className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8'
-        >
-          {posts.map((post) => (
-            <motion.div key={post.id} variants={item}>
-              <Card className='shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col'>
-                {post.image_url && (
-                  <div className='aspect-video w-full overflow-hidden rounded-t-lg'>
-                    <Image 
-                      src={post.image_url} 
-                      alt={post.title} 
-                      fill
-                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                      className='object-cover transition-transform duration-300 hover:scale-105' 
-                      onError={(e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-                        // Type assertion for currentTarget if needed, or handle more gracefully
-                        (e.currentTarget as HTMLImageElement).style.display = 'none';
-                      }}
-                    />
-                  </div>
-                )}
-                <CardHeader className={`${!post.image_url ? 'pt-6' : ''}`}>
-                  <CardTitle className='truncate text-xl font-semibold leading-tight'>
-                    {post.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className='flex-grow'>
-                  <p className='text-sm text-gray-500 mt-1'>
-                    Published on:{' '}
-                    {new Date(post.created_at).toLocaleDateString()}
-                  </p>
-                </CardContent>
-                {/* Optional: Add a link to the full post if you have individual post pages */}
-                {/* <CardFooter>
+      <motion.div
+        variants={container}
+        initial='hidden'
+        whileInView='show'
+        viewport={{ once: true, amount: 0.1 }}
+        className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8'
+      >
+        {posts.map((post) => (
+          <motion.div key={post.id} variants={item}>
+            <Card className='shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col'>
+              {post.image_url && (
+                <div className='aspect-video w-full overflow-hidden rounded-t-lg'>
+                  <Image
+                    src={post.image_url}
+                    alt={post.title}
+                    fill
+                    sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
+                    className='object-cover transition-transform duration-300 hover:scale-105'
+                    onError={(
+                      e: React.SyntheticEvent<HTMLImageElement, Event>
+                    ) => {
+                      // Type assertion for currentTarget if needed, or handle more gracefully
+                      (e.currentTarget as HTMLImageElement).style.display =
+                        'none';
+                    }}
+                  />
+                </div>
+              )}
+              <CardHeader className={`${!post.image_url ? 'pt-6' : ''}`}>
+                <CardTitle className='truncate text-xl font-semibold leading-tight'>
+                  {post.title}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className='flex-grow'>
+                <p className='text-sm text-gray-500 mt-1'>
+                  Published on: {new Date(post.created_at).toLocaleDateString()}
+                </p>
+              </CardContent>
+              {/* Optional: Add a link to the full post if you have individual post pages */}
+              {/* <CardFooter>
                   <Link href={`/posts/${post.id}`} className="text-blue-600 hover:underline">
                     Read more
                   </Link>
                 </CardFooter> */}
-              </Card>
-            </motion.div>
-          ))}
-        </motion.div>
-      </div>
+            </Card>
+          </motion.div>
+        ))}
+      </motion.div>
     </section>
   );
 };

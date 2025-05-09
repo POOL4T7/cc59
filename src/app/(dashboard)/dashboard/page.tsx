@@ -4,11 +4,13 @@ import React, { useState, useEffect, FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { useAuth } from '@/context/AuthContext'; // To ensure user is loaded
-import { createSupabaseBrowserClient } from '@/lib/supabase/client'; // Supabase client
+import { useAuth } from '@/context/AuthContext';
+import { createSupabaseBrowserClient } from '@/lib/supabase/client';
 import Image from 'next/image';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, PlusCircle, Image as ImageIcon, X } from 'lucide-react';
+import { toast } from 'sonner';
 
-// Define the Post type based on your Supabase table
 interface Post {
   id: string;
   created_at: string;
@@ -18,7 +20,7 @@ interface Post {
 }
 
 const DashboardPage = () => {
-  const { user, isLoading: authLoading } = useAuth(); // Get user from AuthContext
+  const { user, isLoading: authLoading } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -26,13 +28,25 @@ const DashboardPage = () => {
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostImageFile, setNewPostImageFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Handle image preview
+  useEffect(() => {
+    if (!newPostImageFile) {
+      setPreviewUrl(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(newPostImageFile);
+    setPreviewUrl(objectUrl);
+
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [newPostImageFile]);
 
   // Fetch posts
   useEffect(() => {
-    if (authLoading) return; // Wait for auth state to load
+    if (authLoading) return;
     if (!user) {
-      // User not logged in, or session still loading
-      // Redirect or show message, handled by middleware or AuthContext typically
       setIsLoading(false);
       return;
     }
@@ -48,12 +62,15 @@ const DashboardPage = () => {
         }
         const data: Post[] = await response.json();
         setPosts(data);
+        toast.success('Posts loaded successfully');
       } catch (err) {
         console.error('Failed to fetch posts:', err);
         if (err instanceof Error) {
           setError(err.message);
+          toast.error(`Error: ${err.message}`);
         } else {
           setError('An unknown error occurred while fetching posts.');
+          toast.error('An unknown error occurred');
         }
       } finally {
         setIsLoading(false);
@@ -67,11 +84,13 @@ const DashboardPage = () => {
   const handleCreatePost = async (e: FormEvent) => {
     e.preventDefault();
     if (!newPostTitle.trim()) {
-      alert('Title is required.');
+      toast.warning('Title is required');
       return;
     }
+
     setIsSubmitting(true);
     setError(null);
+    const toastId = toast.loading('Creating post...');
 
     let imageUrl: string | null = null;
     const supabase = createSupabaseBrowserClient();
@@ -85,41 +104,35 @@ const DashboardPage = () => {
           '_'
         )}`;
         const { error: uploadError } = await supabase.storage
-          .from('cc59') // Your bucket name
+          .from('cc59')
           .upload(fileName, newPostImageFile);
 
         if (uploadError) {
-          console.error('Supabase upload error:', uploadError);
           throw new Error(`Image upload failed: ${uploadError.message}`);
         }
 
-        // Get public URL
         const { data: publicUrlData } = supabase.storage
-          .from('cc59') // Your bucket name
+          .from('cc59')
           .getPublicUrl(fileName);
 
-        if (!publicUrlData || !publicUrlData.publicUrl) {
-          console.error('Failed to get public URL for:', fileName);
+        if (!publicUrlData?.publicUrl) {
           throw new Error('Failed to get public URL for uploaded image.');
         }
+
         imageUrl = publicUrlData.publicUrl;
         setNewPostImageFile(null);
+        setPreviewUrl(null);
       } catch (uploadError) {
         console.error('Image upload process failed:', uploadError);
-        if (uploadError instanceof Error) {
-          setError(uploadError.message);
-        } else {
-          setError('An unexpected error occurred during image upload.');
-        }
+        const errorMessage =
+          uploadError instanceof Error
+            ? uploadError.message
+            : 'An unexpected error occurred during image upload.';
+        setError(errorMessage);
+        toast.error(`Error: ${errorMessage}`, { id: toastId });
         setIsSubmitting(false);
         return;
       }
-    } else if (newPostImageFile && !user) {
-      setError(
-        'User not available for image upload. Please ensure you are logged in.'
-      );
-      setIsSubmitting(false);
-      return;
     }
 
     try {
@@ -137,16 +150,15 @@ const DashboardPage = () => {
       }
 
       const createdPost: Post = await response.json();
-      setPosts([createdPost, ...posts]); // Add new post to the beginning of the list
+      setPosts([createdPost, ...posts]);
       setNewPostTitle('');
-      setNewPostImageFile(null); // Reset file input
+
+      toast.success('Post created successfully!', { id: toastId });
     } catch (err) {
-      if (err instanceof Error) {
-        setError(err.message);
-        alert(`Error creating post: ${err.message}`);
-      } else {
-        setError('An unexpected error occurred during image upload.');
-      }
+      const errorMessage =
+        err instanceof Error ? err.message : 'An unexpected error occurred.';
+      setError(errorMessage);
+      toast.error(`Error: ${errorMessage}`, { id: toastId });
     } finally {
       setIsSubmitting(false);
     }
@@ -155,17 +167,28 @@ const DashboardPage = () => {
   if (authLoading || (isLoading && posts.length === 0)) {
     return (
       <div className='flex justify-center items-center min-h-screen'>
-        <p>Loading dashboard...</p>
+        <div className='flex flex-col items-center gap-4'>
+          <Loader2 className='h-8 w-8 animate-spin text-primary' />
+          <p className='text-lg'>Loading your dashboard...</p>
+        </div>
       </div>
     );
   }
 
   if (!user && !authLoading) {
     return (
-      <div className='flex flex-col justify-center items-center min-h-screen'>
-        <p className='mb-4'>You need to be logged in to view this page.</p>
+      <div className='flex flex-col justify-center items-center min-h-screen gap-6 p-4'>
+        <div className='text-center max-w-md'>
+          <h1 className='text-2xl font-bold mb-2'>Access Denied</h1>
+          <p className='text-muted-foreground'>
+            You need to be logged in to view this content. Please sign in to
+            access your dashboard.
+          </p>
+        </div>
         <Button asChild>
-          <a href='/login'>Go to Login</a>
+          <a href='/login' className='px-6 py-3'>
+            Go to Login
+          </a>
         </Button>
       </div>
     );
@@ -173,115 +196,227 @@ const DashboardPage = () => {
 
   return (
     <div className='container mx-auto p-4 md:p-8'>
-      <h1 className='text-3xl font-bold mb-8 text-center'>Your Dashboard</h1>
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className='mb-12'
+      >
+        <h1 className='text-3xl font-bold text-center mb-2 bg-gradient-to-r from-primary to-purple-600 bg-clip-text text-transparent'>
+          Your Dashboard
+        </h1>
+        <p className='text-center text-muted-foreground max-w-2xl mx-auto'>
+          Create and manage your posts in one place
+        </p>
+      </motion.div>
 
-      <div className='flex flex-col md:flex-row md:space-x-8'>
-        {/* Left Column: Create Post Form */}
-        <div className='md:w-1/3'>
-          <Card className='mb-8 shadow-lg'>
-            <CardHeader>
-              <CardTitle>Create New Post</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleCreatePost} className='space-y-4'>
-                <div>
-                  <label
-                    htmlFor='postTitle'
-                    className='block text-sm font-medium text-gray-700 mb-1'
-                  >
-                    Title <span className='text-red-500'>*</span>
-                  </label>
-                  <Input
-                    id='postTitle'
-                    type='text'
-                    value={newPostTitle}
-                    onChange={(e) => setNewPostTitle(e.target.value)}
-                    placeholder='Enter post title'
-                    required
-                    className='w-full'
-                  />
+      <div className='flex flex-col lg:flex-row gap-8'>
+        {/* Create Post Card */}
+        <div className='w-full lg:w-1/3'>
+          <motion.div
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <Card className='border-0 shadow-lg bg-gradient-to-br from-background to-muted/50'>
+              <CardHeader>
+                <div className='flex items-center gap-3'>
+                  <PlusCircle className='h-6 w-6 text-primary' />
+                  <CardTitle>Create New Post</CardTitle>
                 </div>
-                <div>
-                  <label
-                    htmlFor='postImageFile'
-                    className='block text-sm font-medium text-gray-700 mb-1'
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleCreatePost} className='space-y-4'>
+                  <div>
+                    <label
+                      htmlFor='postTitle'
+                      className='block text-sm font-medium mb-2'
+                    >
+                      Title <span className='text-red-500'>*</span>
+                    </label>
+                    <Input
+                      id='postTitle'
+                      type='text'
+                      value={newPostTitle}
+                      onChange={(e) => setNewPostTitle(e.target.value)}
+                      placeholder="What's on your mind?"
+                      required
+                      className='w-full focus-visible:ring-primary'
+                    />
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor='postImageFile'
+                      className='block text-sm font-medium mb-2'
+                    >
+                      Image (Optional)
+                    </label>
+                    <div className='flex flex-col gap-4'>
+                      <label className='flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-muted/50 transition-colors'>
+                        <div className='flex flex-col items-center justify-center pt-5 pb-6'>
+                          <ImageIcon className='w-8 h-8 mb-3 text-muted-foreground' />
+                          <p className='text-sm text-muted-foreground'>
+                            {newPostImageFile
+                              ? 'Change image'
+                              : 'Click to upload'}
+                          </p>
+                        </div>
+                        <Input
+                          id='postImageFile'
+                          type='file'
+                          accept='image/*'
+                          onChange={(e) =>
+                            setNewPostImageFile(
+                              e.target.files ? e.target.files[0] : null
+                            )
+                          }
+                          className='hidden'
+                        />
+                      </label>
+
+                      {previewUrl && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className='relative w-full h-48 rounded-md overflow-hidden border'
+                        >
+                          <Image
+                            src={previewUrl}
+                            alt='Preview'
+                            fill
+                            className='object-cover'
+                          />
+                          <button
+                            type='button'
+                            onClick={() => {
+                              setNewPostImageFile(null);
+                              setPreviewUrl(null);
+                            }}
+                            className='absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors'
+                          >
+                            <X className='h-4 w-4' />
+                          </button>
+                        </motion.div>
+                      )}
+                    </div>
+                  </div>
+
+                  <Button
+                    type='submit'
+                    disabled={isSubmitting}
+                    className='w-full mt-6'
                   >
-                    Image (Optional)
-                  </label>
-                  <Input
-                    id='postImageFile'
-                    type='file'
-                    accept='image/*'
-                    onChange={(e) =>
-                      setNewPostImageFile(
-                        e.target.files ? e.target.files[0] : null
-                      )
-                    }
-                    className='w-full file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90'
-                  />
-                </div>
-                <Button
-                  type='submit'
-                  disabled={isSubmitting}
-                  className='w-full sm:w-auto'
-                >
-                  {isSubmitting ? 'Creating Post...' : 'Create Post'}
-                </Button>
-                {error && (
-                  <p className='text-red-500 text-sm mt-2'>{`Error: ${error}`}</p>
-                )}
-              </form>
-            </CardContent>
-          </Card>
+                    {isSubmitting ? (
+                      <>
+                        <Loader2 className='mr-2 h-4 w-4 animate-spin' />
+                        Creating...
+                      </>
+                    ) : (
+                      'Create Post'
+                    )}
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </motion.div>
         </div>
 
-        {/* Right Column: Display Posts */}
-        <div className='md:w-2/3'>
-          <h2 className='text-2xl font-semibold mb-6 text-center md:text-left'>
-            Your Posts
-          </h2>
-          {isLoading && posts.length === 0 && (
-            <p className='text-center'>Loading posts...</p>
-          )}
-          {!isLoading && posts.length === 0 && !error && (
-            <p className='text-center text-gray-500'>
-              You havent created any posts yet. Use the form on the left to
-              create one!
-            </p>
-          )}
+        {/* Posts Column */}
+        <div className='w-full lg:w-2/3'>
+          <motion.div
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <div className='flex items-center justify-between mb-6'>
+              <h2 className='text-2xl font-semibold'>
+                Your Posts{' '}
+                <span className='text-muted-foreground'>({posts.length})</span>
+              </h2>
+            </div>
 
-          {error && posts.length === 0 && (
-            <p className='text-red-500 text-center'>{`Error fetching posts: ${error}`}</p>
-          )}
+            {isLoading && posts.length === 0 && (
+              <div className='flex justify-center items-center h-64'>
+                <Loader2 className='h-8 w-8 animate-spin text-primary' />
+              </div>
+            )}
 
-          <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2 gap-6'>
-            {posts.map((post) => (
-              <Card
-                key={post.id}
-                className='shadow-md hover:shadow-xl transition-shadow duration-300'
+            {!isLoading && posts.length === 0 && !error && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className='flex flex-col items-center justify-center p-12 border rounded-lg bg-muted/50'
               >
-                <CardHeader>
-                  <CardTitle className='truncate'>{post.title}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {post.image_url && (
-                    <Image
-                      src={post.image_url}
-                      alt={post.title}
-                      height={400}
-                      width={400}
-                      className='w-full h-48 object-cover rounded-md mb-4'
-                      onError={(e) => (e.currentTarget.style.display = 'none')} // Hide if image fails to load
-                    />
-                  )}
-                  <p className='text-sm text-gray-500'>
-                    Created on: {new Date(post.created_at).toLocaleDateString()}
-                  </p>
-                </CardContent>
-                {/* Add CardFooter for actions like Edit/Delete later if needed */}
-              </Card>
-            ))}
-          </div>
+                <ImageIcon className='h-12 w-12 text-muted-foreground mb-4' />
+                <h3 className='text-lg font-medium mb-2'>No posts yet</h3>
+                <p className='text-muted-foreground text-center max-w-md'>
+                  You haven`t created any posts yet. Use the form to share your
+                  first post!
+                </p>
+              </motion.div>
+            )}
+
+            {error && posts.length === 0 && (
+              <div className='p-4 rounded-lg bg-red-50 border border-red-200 text-red-600'>
+                <p>Error fetching posts: {error}</p>
+              </div>
+            )}
+
+            <AnimatePresence>
+              <div className='grid grid-cols-1 md:grid-cols-2 gap-6'>
+                {posts.map((post) => (
+                  <motion.div
+                    key={post.id}
+                    layout
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <Card className='h-full flex flex-col hover:shadow-lg transition-shadow'>
+                      {post.image_url && (
+                        <div className='relative h-48 w-full'>
+                          <Image
+                            src={post.image_url}
+                            alt={post.title}
+                            fill
+                            className='object-cover rounded-t-lg'
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                      <CardHeader>
+                        <CardTitle className='line-clamp-2'>
+                          {post.title}
+                        </CardTitle>
+                        <>
+                          Posted on{' '}
+                          {new Date(post.created_at).toLocaleDateString(
+                            'en-US',
+                            {
+                              year: 'numeric',
+                              month: 'short',
+                              day: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            }
+                          )}
+                        </>
+                      </CardHeader>
+                      <CardContent className='mt-auto'>
+                        <Button variant='outline' size='sm' className='w-full'>
+                          View Details
+                        </Button>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </AnimatePresence>
+          </motion.div>
         </div>
       </div>
     </div>

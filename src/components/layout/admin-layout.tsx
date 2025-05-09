@@ -1,8 +1,6 @@
 // Example of how to use them together in a layout component:
 'use client';
-import { useState } from 'react';
 import { Header } from './header';
-// import { Sidebar } from './sidebar';
 import { cn } from '@/lib/utils';
 
 export default function DashboardLayout({
@@ -10,15 +8,9 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
   return (
     <div className='min-h-screen bg-gray-50'>
-      <Header toggleSidebar={toggleSidebar} />
+      <Header />
       {/* <Sidebar isOpen={sidebarOpen} toggleSidebar={toggleSidebar} /> */}
       <div
         className={cn(

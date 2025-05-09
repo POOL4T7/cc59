@@ -67,12 +67,14 @@ export default function LoginPage() {
 
       // The redirection will be handled by the useEffect watching isAuthenticated
       // router.push('/menu'); // Or redirect immediately if preferred
-    } catch (error: any) {
+    } catch (error) {
       // This catch block might be redundant if supabase errors are always in the 'error' object
-      console.error('Unexpected error during login:', error, error.messages);
-      toast.error('Login Failed', {
-        description: error.message || 'An unexpected error occurred.',
-      });
+      if (error instanceof Error) {
+        console.error('Unexpected error during login:', error);
+        toast.error('Login Failed', {
+          description: error.message || 'An unexpected error occurred.',
+        });
+      }
     }
     // isLoading state is managed by AuthContext
   };

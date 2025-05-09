@@ -11,7 +11,7 @@ interface Post {
   user_id: string;
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   const supabase = await createSupabaseServerClient();
 
   try {

@@ -1,11 +1,11 @@
 // import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { MenuIcon, LogOutIcon } from 'lucide-react';
+import { LogOutIcon } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 
-export function Header({ toggleSidebar }: { toggleSidebar: () => void }) {
+export function Header() {
   const { logoutUser } = useAuth();
   const router = useRouter();
 
@@ -22,20 +22,13 @@ export function Header({ toggleSidebar }: { toggleSidebar: () => void }) {
       });
     }
   };
+
   return (
     <header className='sticky top-0 z-50 w-full border-b bg-primary text-primary-foreground shadow-lg'>
       <div className=' flex h-16 items-center justify-between'>
-        <div className='flex items-center space-x-4'>
-          <Button
-            variant='ghost'
-            size='icon'
-            className='text-black hover:bg-white/10'
-            onClick={toggleSidebar}
-          >
-            <MenuIcon className='h-5 w-5' />
-          </Button>
+        <div className='flex items-center space-x-4 ml-5'>
           <span className='hidden text-black text-xl font-bold md:inline-block'>
-            Admin Dashboard
+            CC59
           </span>
         </div>
 

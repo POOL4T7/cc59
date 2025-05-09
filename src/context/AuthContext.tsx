@@ -15,8 +15,10 @@ interface AuthContextType {
   isAuthenticated: boolean;
   user: User | null;
   supabase: SupabaseClient;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   loginUser: (email: string, password: string) => Promise<any>;
   logoutUser: () => Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   signupUser: (email: string, password: string) => Promise<any>;
   isLoading: boolean;
 }
