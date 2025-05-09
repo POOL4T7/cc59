@@ -2,16 +2,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { motion } from 'framer-motion'; // Import motion
-import Image from 'next/image'; // Import Next Image
+import { motion } from 'framer-motion';
+import Image from 'next/image';
 
-// Define the Post type (can be imported from a shared types file if available)
 interface Post {
   id: string;
   created_at: string;
   title: string;
   image_url?: string | null;
-  user_id: string; // Or a user object if you join user data
+  user_id: string;
 }
 
 const PostList = () => {
@@ -24,7 +23,7 @@ const PostList = () => {
       setIsLoading(true);
       setError(null);
       try {
-        const response = await fetch('/api/posts?limit=6'); // Fetch latest 6 posts for homepage
+        const response = await fetch('/api/public-post?limit=4');
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.error || 'Failed to fetch posts');
@@ -50,7 +49,6 @@ const PostList = () => {
     return (
       <div className='text-center py-10'>
         <p>Loading latest posts...</p>
-        {/* Optional: Add a simple spinner component here */}
       </div>
     );
   }
@@ -73,21 +71,6 @@ const PostList = () => {
 
   return (
     <section id='latest-posts' className='py-12 bg-slate-50'>
-      {/* <motion.div
-          initial='hidden'
-          whileInView='show'
-          viewport={{ once: true, amount: 0.2 }}
-          variants={container}
-          className='text-center mb-10 md:mb-16'
-        >
-          <h2 className='text-3xl font-bold tracking-tight sm:text-4xl md:text-5xl bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent'>
-            Latest From Our Community
-          </h2>
-          <p className='mt-4 text-lg text-muted-foreground sm:text-xl'>
-            See what others are sharing and get inspired.
-          </p>
-        </motion.div> */}
-
       <motion.div
         variants={container}
         initial='hidden'
@@ -99,17 +82,16 @@ const PostList = () => {
           <motion.div key={post.id} variants={item}>
             <Card className='shadow-md hover:shadow-xl transition-shadow duration-300 h-full flex flex-col'>
               {post.image_url && (
-                <div className='aspect-video w-full overflow-hidden rounded-t-lg'>
+                <div className='aspect-video w-full overflow-hidden rounded-t-lg relative'>
                   <Image
                     src={post.image_url}
                     alt={post.title}
                     fill
                     sizes='(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw'
-                    className='object-cover transition-transform duration-300 hover:scale-105'
+                    className='object-cover'
                     onError={(
                       e: React.SyntheticEvent<HTMLImageElement, Event>
                     ) => {
-                      // Type assertion for currentTarget if needed, or handle more gracefully
                       (e.currentTarget as HTMLImageElement).style.display =
                         'none';
                     }}
@@ -126,12 +108,6 @@ const PostList = () => {
                   Published on: {new Date(post.created_at).toLocaleDateString()}
                 </p>
               </CardContent>
-              {/* Optional: Add a link to the full post if you have individual post pages */}
-              {/* <CardFooter>
-                  <Link href={`/posts/${post.id}`} className="text-blue-600 hover:underline">
-                    Read more
-                  </Link>
-                </CardFooter> */}
             </Card>
           </motion.div>
         ))}
@@ -140,7 +116,6 @@ const PostList = () => {
   );
 };
 
-// Minimal container and item variants for motion (can be imported if shared)
 const container = {
   hidden: { opacity: 0 },
   show: {
